@@ -1,0 +1,46 @@
+name: UKPredictor
+
+on:
+  schedule:
+    - cron: '0 8 * * 5'   # Friday 08:00 UTC = 09:00 UK summer time
+    - cron: '0 9 * * 1'   # Monday 09:00 UTC = 10:00 UK summer time
+  workflow_dispatch:
+    inputs:
+      job:
+        description: 'Which job to run'
+        required: true
+        default: grade
+        type: choice
+        options: [predict, grade]
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      UKPREDICTOR_DATA: ${{ github.workspace }}/data
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run predictor
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            JOB="${{ inputs.job }}"
+          elif [ "${{ github.event.schedule }}" = "0 8 * * 5" ]; then
+            JOB=predict
+          else
+            JOB=grade
+          fi
+          echo "Running $JOB"
+          python run_$JOB.py
+      - name: Save updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || git commit -m "Update data $(date -u +%F)"
+          git push
