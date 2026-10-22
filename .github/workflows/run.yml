@@ -30,6 +30,11 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
+      - name: Clear old feed cache
+        # A fresh checkout makes every file look brand new, so the 6-hour cache
+        # check always passed and the feeds were never re-downloaded after 11 Oct.
+        # Deleting the cache forces fresh fixtures and results on every run.
+        run: rm -rf data/cache
       - name: Run predictor
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
